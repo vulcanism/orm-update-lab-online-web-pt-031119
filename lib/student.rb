@@ -11,67 +11,54 @@ class Student
   
   def self.create_table
     sql = <<-SQL
-    CREATE TABLE IF NOT EXISTS students (
-      id INTEGER PRIMARY KEY,
-      name TEXT,
-      grade TEXT
-    )
-    SQL
+          CREATE TABLE IF NOT EXISTS students(
+            id NTEGER PRIMARY KEY,
+            name TEXT,
+            grade TEXT
+          );
+          SQL
+    DB[:conn].execute(sql)
+  end
 
-    DB[:conn].execute(sql)
-  end
-  
   def self.drop_table
-    sql = "DROP TABLE IF EXISTS students"
+    sql = <<-SQL
+          DROP TABLE Students;
+          SQL
     DB[:conn].execute(sql)
   end
-  
+
   def save
     if self.id
       self.update
     else
-    sql = <<-SQL
-      INSERT INTO students (name, grade) 
-      VALUES (?, ?)
-    SQL
-
-    DB[:conn].execute(sql, self.name, self.grade)
-    @id = DB[:conn].execute("SELECT last_insert_rowid() FROM students")[0][0]
+      sql = "INSERT INTO Students (name, grade) VALUES (?, ?)"
+      DB[:conn].execute(sql, self.name, self.grade)
+      @id = DB[:conn].execute("SELECT last_insert_rowid() FROM Students")[0][0]
     end
   end
-  
+
+  def update
+    sql = "UPDATE Students SET name = ?, grade = ? WHERE id = ?"
+    DB[:conn].execute(sql, self.name, self.grade, self.id)
+  end
+
   def self.create(name, grade)
     student = Student.new(name, grade)
     student.save
     student
   end
-  
+
   def self.new_from_db(row)
-    new_student = self.new
-    new_student.id = row[0]
-    new_student.name = row[1]
-    new_student.grade = row[2]
+    id = row[0]
+    name = row[1]
+    grade = row[2]
+    new_student = self.new(name, grade, id)
     new_student
   end
 
   def self.find_by_name(name)
-    sql = <<-SQL
-      SELECT *
-      FROM students
-      WHERE name = ?
-      LIMIT 1
-    SQL
-    
-    DB[:conn].execute(sql, name).map do |row|
-      self.new_from_db(row)
-    end.first
+    sql = "SELECT * FROM Students WHERE name = ?"
+    result = DB[:conn].execute(sql, name)[0]
+    Student.new(result[1],result[2],result[0])
   end
-  
-  def update
-    sql = "UPDATE students
-    SET name = ?, grade = ?
-    WHERE id = ?"
-    DB[:conn].execute(sql, self.name, self.grade, self.id)
-  end
-
 end
